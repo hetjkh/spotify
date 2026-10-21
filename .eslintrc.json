@@ -1,0 +1,14 @@
+{
+  "env": {
+    "jest/globals": true
+  },
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:jest/recommended",
+    "plugin:@tanstack/eslint-plugin-query/recommended"
+  ],
+  "plugins": ["jest", "@tanstack/query"],
+  "rules": {
+    "react/display-name": "off"
+  }
+}
