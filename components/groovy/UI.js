@@ -1,13 +1,37 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUpRight, Check, ChevronRight, Heart, ListPlus, MoreHorizontal, Music2, Pause, Play, Plus, X } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronRight, Heart, ListPlus, Moon, MoreHorizontal, Music2, Pause, Play, Plus, Sun, X } from 'lucide-react'
 import Link from 'next/link'
 import { useMusic } from './MusicProvider'
 import { formatTime, songs } from '@/data/groovy'
 
 export function IconButton({ label, children, className = '', ...props }) {
   return <button type="button" className={`icon-button ${className}`} aria-label={label} title={label} {...props}>{children}</button>
+}
+
+function readStoredTheme() {
+  try {
+    const stored = localStorage.getItem('groovy-theme')
+    if (stored === 'light' || stored === 'dark') return stored
+  } catch {}
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+}
+
+export function ThemeToggle() {
+  const [theme, setTheme] = useState('dark')
+  useEffect(() => {
+    const next = readStoredTheme()
+    setTheme(next)
+    document.documentElement.setAttribute('data-theme', next)
+  }, [])
+  const toggle = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.setAttribute('data-theme', next)
+    try { localStorage.setItem('groovy-theme', next) } catch {}
+  }
+  return <IconButton label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggle}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</IconButton>
 }
 
 export function Equalizer() { return <span className="equalizer" aria-label="Playing"><i /><i /><i /><i /></span> }

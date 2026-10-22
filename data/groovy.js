@@ -8,29 +8,29 @@ export const artists = [
 ]
 
 export const songs = [
-  { id: 'feelings', title: 'In My Feelings', artist: 'Luna Grey', artistId: 'luna', album: 'The Midnight Sessions', image: '/images/luna.jpg', genre: 'Dream pop', duration: 64, color: '#7561a0' },
-  { id: 'nightfall', title: 'Nightfall', artist: 'Atlas', artistId: 'atlas', album: 'After Hours', image: '/images/nightfall.jpg', genre: 'Electronic', duration: 64, color: '#5f548e' },
-  { id: 'weightless', title: 'Weightless', artist: 'Nova', artistId: 'nova', album: 'Soft Landing', image: '/images/bloom.jpg', genre: 'Indie', duration: 64, color: '#af6e7b' },
-  { id: 'golden', title: 'Golden Hour', artist: 'Sol Rivers', artistId: 'sol', album: 'Little Moments', image: '/images/golden.jpg', genre: 'Lo-fi', duration: 64, color: '#b49458' },
-  { id: 'neon', title: 'Neon Dreams', artist: 'Echo Park', artistId: 'echo', album: 'City Lights', image: '/images/live.jpg', genre: 'Electronic', duration: 64, color: '#7568ba' },
-  { id: 'tides', title: 'Changing Tides', artist: 'Aurora', artistId: 'aurora', album: 'Somewhere, Elsewhere', image: '/images/coast.jpg', genre: 'Ambient', duration: 64, color: '#648b89' },
-  { id: 'slow', title: 'Slow Mornings', artist: 'Sol Rivers', artistId: 'sol', album: 'Little Moments', image: '/images/sol.jpg', genre: 'Lo-fi', duration: 64, color: '#a28366' },
-  { id: 'moon', title: 'Under the Moon', artist: 'Luna Grey', artistId: 'luna', album: 'The Midnight Sessions', image: '/images/aurora.jpg', genre: 'Dream pop', duration: 64, color: '#7b658f' },
+  { id: 'feelings', title: 'In My Feelings', artist: 'Luna Grey', artistId: 'luna', album: 'The Midnight Sessions', image: '/images/luna.jpg', genre: 'Dream pop', duration: 64, color: '#2a2a2a' },
+  { id: 'nightfall', title: 'Nightfall', artist: 'Atlas', artistId: 'atlas', album: 'After Hours', image: '/images/nightfall.jpg', genre: 'Electronic', duration: 64, color: '#1a1a1a' },
+  { id: 'weightless', title: 'Weightless', artist: 'Nova', artistId: 'nova', album: 'Soft Landing', image: '/images/bloom.jpg', genre: 'Indie', duration: 64, color: '#333333' },
+  { id: 'golden', title: 'Golden Hour', artist: 'Sol Rivers', artistId: 'sol', album: 'Little Moments', image: '/images/golden.jpg', genre: 'Lo-fi', duration: 64, color: '#3d3d3d' },
+  { id: 'neon', title: 'Neon Dreams', artist: 'Echo Park', artistId: 'echo', album: 'City Lights', image: '/images/live.jpg', genre: 'Electronic', duration: 64, color: '#242424' },
+  { id: 'tides', title: 'Changing Tides', artist: 'Aurora', artistId: 'aurora', album: 'Somewhere, Elsewhere', image: '/images/coast.jpg', genre: 'Ambient', duration: 64, color: '#2f2f2f' },
+  { id: 'slow', title: 'Slow Mornings', artist: 'Sol Rivers', artistId: 'sol', album: 'Little Moments', image: '/images/sol.jpg', genre: 'Lo-fi', duration: 64, color: '#383838' },
+  { id: 'moon', title: 'Under the Moon', artist: 'Luna Grey', artistId: 'luna', album: 'The Midnight Sessions', image: '/images/aurora.jpg', genre: 'Dream pop', duration: 64, color: '#2c2c2c' },
 ].map(song => ({ ...song, src: `/audio/${song.id}.mp3` }))
 
 export const mixes = [
-  { id: 'after-hours', name: 'After Hours', subtitle: 'For when the world slows down.', image: '/images/nightfall.jpg', color: '#7561ba', tag: 'LATE NIGHT', trackIds: ['nightfall', 'feelings', 'neon', 'moon'] },
-  { id: 'slow-mornings', name: 'Slow Mornings', subtitle: 'A little calm. A fresh start.', image: '/images/golden.jpg', color: '#bb8951', tag: 'EASY LISTENING', trackIds: ['slow', 'golden', 'weightless', 'tides'] },
-  { id: 'in-bloom', name: 'In Full Bloom', subtitle: 'Good things are on their way.', image: '/images/bloom.jpg', color: '#bd7d91', tag: 'FEEL GOOD', trackIds: ['weightless', 'golden', 'feelings', 'moon'] },
-  { id: 'coastline', name: 'Coastline', subtitle: 'Take the scenic route.', image: '/images/coast.jpg', color: '#5f9698', tag: 'UNWIND', trackIds: ['tides', 'slow', 'nightfall', 'golden'] },
+  { id: 'after-hours', name: 'After Hours', subtitle: 'For when the world slows down.', image: '/images/nightfall.jpg', color: '#1a1a1a', tag: 'LATE NIGHT', trackIds: ['nightfall', 'feelings', 'neon', 'moon'] },
+  { id: 'slow-mornings', name: 'Slow Mornings', subtitle: 'A little calm. A fresh start.', image: '/images/golden.jpg', color: '#2a2a2a', tag: 'EASY LISTENING', trackIds: ['slow', 'golden', 'weightless', 'tides'] },
+  { id: 'in-bloom', name: 'In Full Bloom', subtitle: 'Good things are on their way.', image: '/images/bloom.jpg', color: '#333333', tag: 'FEEL GOOD', trackIds: ['weightless', 'golden', 'feelings', 'moon'] },
+  { id: 'coastline', name: 'Coastline', subtitle: 'Take the scenic route.', image: '/images/coast.jpg', color: '#404040', tag: 'UNWIND', trackIds: ['tides', 'slow', 'nightfall', 'golden'] },
 ]
 
 export const genres = [
-  { name: 'Electronic', color: '#3f526b', caption: 'Find your frequency', icon: 'wave' },
-  { name: 'Dream pop', color: '#766484', caption: 'A softer kind of escape', icon: 'sparkles' },
-  { name: 'Indie', color: '#9a624c', caption: 'A little off the beaten path', icon: 'sun' },
-  { name: 'Lo-fi', color: '#477976', caption: 'Ease into the moment', icon: 'coffee' },
-  { name: 'Ambient', color: '#6e668f', caption: 'Room to breathe', icon: 'moon' },
+  { name: 'Electronic', color: '#1c1c1c', caption: 'Find your frequency', icon: 'wave' },
+  { name: 'Dream pop', color: '#2a2a2a', caption: 'A softer kind of escape', icon: 'sparkles' },
+  { name: 'Indie', color: '#363636', caption: 'A little off the beaten path', icon: 'sun' },
+  { name: 'Lo-fi', color: '#444444', caption: 'Ease into the moment', icon: 'coffee' },
+  { name: 'Ambient', color: '#555555', caption: 'Room to breathe', icon: 'moon' },
 ]
 
 export const sessions = [
