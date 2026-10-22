@@ -1,0 +1,27 @@
+const { chromium } = require('@playwright/test')
+const fs = require('fs')
+const path = require('path')
+;(async () => {
+  const output = path.join(__dirname, '..', 'artifacts')
+  fs.mkdirSync(output, { recursive: true })
+  const browser = await chromium.launch({ channel: 'chrome', headless: true })
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 })
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.goto('http://127.0.0.1:3000', { waitUntil: 'networkidle' })
+    await page.screenshot({ path: path.join(output, 'desktop.png'), fullPage: true, animations: 'disabled' })
+    console.log('Desktop:', await page.title(), 'overflow:', await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
+    console.log('Broken images:', await page.locator('img').evaluateAll(images => images.filter(img => !img.complete || img.naturalWidth === 0).map(img => img.src)))
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({ path: path.join(output, 'mobile.png'), fullPage: true, animations: 'disabled' })
+    await page.getByRole('button', { name: 'Listen now', exact: true }).click()
+    await page.waitForFunction(() => document.querySelector('audio').currentTime > .2)
+    console.log('Audio:', await page.locator('audio').evaluate(audio => ({ src: audio.currentSrc, duration: audio.duration, paused: audio.paused, time: audio.currentTime })))
+    await page.getByRole('button', { name: 'Open full screen player' }).click()
+    await page.getByRole('dialog').waitFor()
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.modal-backdrop')).opacity === '1')
+    await page.screenshot({ path: path.join(output, 'mobile-player.png'), fullPage: true, animations: 'disabled' })
+    console.log('Errors:', errors)
+  } finally { await browser.close() }
+})().catch(error => { console.error(error); process.exit(1) })
