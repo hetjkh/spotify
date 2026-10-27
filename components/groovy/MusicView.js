@@ -1,92 +1,272 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowDownToLine, ArrowLeft, ArrowUpRight, AudioLines, Check, ChevronLeft, ChevronRight, Coffee, Disc3, Heart, Headphones, ListMusic, Moon, Music2, Pause, Play, Plus, Radio, Search, Sparkles, Sun, Upload } from 'lucide-react'
-import { artists, genres, mixes, sessions, songs, tracksFor } from '@/data/groovy'
+import { ArrowLeft, ArrowUpRight, AudioLines, BookOpen, Check, ChevronLeft, ChevronRight, Coffee, Ellipsis, Heart, Moon, Pause, Play, Plus, Search, Sparkles, Sun, Upload } from 'lucide-react'
+import { CollectionTools, FilteredBooks, matches, NoResults, WorkspaceBookCard } from './WorkspaceUI'
+import Downloads from './Downloads'
+import PeopleDirectory from './PeopleDirectory'
+import DiscoveryChannels from './DiscoveryChannels'
+import BrowseCatalog from './BrowseCatalog'
+import { genres } from '@/data/groovy'
 import { useMusic } from './MusicProvider'
+import { useAuth } from './AuthProvider'
 import { ArtistCard, IconButton, MixCard, Modal, SectionHeading, TrackList } from './UI'
+import { api, avatarUrl, fileUrl, toPlayerTracks } from '@/lib/api'
 
-const genreIcons = { wave: AudioLines, sparkles: Sparkles, sun: Sun, coffee: Coffee, moon: Moon }
-const features = [
-  { tag: 'TRENDING THIS WEEK', title: <>In my<br />feelings.</>, artist: 'Luna Grey', description: 'Some songs just get you. Find your moment.', image: '/images/luna.jpg', song: songs[0], number: '01' },
-  { tag: 'THE AFTER HOURS EDIT', title: <>Meet me<br />at midnight.</>, artist: 'Atlas', description: 'A little less noise. A little more night.', image: '/images/atlas.jpg', song: songs[1], number: '02' },
-  { tag: 'A FRESH PERSPECTIVE', title: <>Let the<br />light in.</>, artist: 'Nova', description: 'A new day deserves a new soundtrack.', image: '/images/nova.jpg', song: songs[2], number: '03' },
-]
+const genreIcons = { book: BookOpen, sparkles: Sparkles, sun: Sun, coffee: Coffee, moon: Moon }
 
-function Hero() {
+function BookCard({ book, music }) {
+  const router = useRouter()
+  if (router.pathname !== '/') return <WorkspaceBookCard book={book} />
+  const lead = toPlayerTracks(book)[0]
+  const playing = lead && music.current.id === lead.id && music.playing
+  const liked = lead && music.liked.includes(lead.id)
+  return <article className="album-card book-card">
+    <div className="book-cover-frame">
+      <Link href={`/listen/${book.id}`} className="album-art book-cover" aria-label={`Open ${book.title}`}>
+        <img src={fileUrl(book.coverUrl)} alt="" loading="lazy" />
+      </Link>
+      <div className="book-card-actions">
+        <button type="button" className="book-card-icon book-card-play" aria-label={playing ? `Pause ${book.title}` : `Play ${book.title}`} onClick={() => playing ? music.togglePlay() : music.playBook(book.id)}>{playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button>
+        <button type="button" className={`book-card-icon book-card-like ${liked ? 'is-liked' : ''}`} aria-label={liked ? `Unlike ${book.title}` : `Like ${book.title}`} aria-pressed={!!liked} disabled={!lead} onClick={() => music.toggleTrackLike(lead)}><Heart size={16} fill={liked ? 'currentColor' : 'none'} /></button>
+      </div>
+    </div>
+    <div className="book-card-body">
+      <Link href={`/listen/${book.id}`} className="book-card-title">{book.title}</Link>
+      <p className="book-card-meta">{book.authorName}</p>
+    </div>
+  </article>
+}
+
+function Hero({ books }) {
   const [index, setIndex] = useState(0)
   const music = useMusic()
-  const feature = features[index]
-  const active = music.current.id === feature.song.id && music.playing
-  return <section className="hero" aria-label="Featured music"><motion.img key={feature.image} className="hero-portrait" src={feature.image} alt={`${feature.artist}, featured artist`} initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .7 }} fetchPriority="high" /><div className="hero-overlay" /><span className="hero-watermark">FEEL IT ALL.</span><motion.div key={feature.artist} className="hero-copy" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5 }}><span className="hero-tag"><span />{feature.tag}</span><h1>{feature.title}</h1><div className="hero-artist"><span>{feature.artist}</span><span className="verified"><Check size={9} strokeWidth={3} /></span><span className="hero-artist-detail">The Midnight Sessions</span></div><p>{feature.description}</p><div className="hero-actions"><button className="button button-primary" onClick={() => active ? music.togglePlay() : music.playTrack(feature.song, songs)}>{active ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}{active ? 'Pause' : 'Listen now'}</button><IconButton label={music.liked.includes(feature.song.id) ? 'Remove featured track from favorites' : 'Save featured track'} aria-pressed={music.liked.includes(feature.song.id)} className={`hero-like ${music.liked.includes(feature.song.id) ? 'is-liked' : ''}`} onClick={() => music.toggleLike(feature.song.id)}><Heart size={18} fill={music.liked.includes(feature.song.id) ? 'currentColor' : 'none'} /></IconButton></div></motion.div><button className="hero-fab" aria-label={active ? `Pause ${feature.song.title}` : `Play ${feature.song.title}`} onClick={() => active ? music.togglePlay() : music.playTrack(feature.song, songs)}>{active ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" />}</button><div className="hero-pagination"><div className="hero-dots">{features.map((item, i) => <button key={item.number} className={index === i ? 'active' : ''} aria-label={`Show featured artist ${item.artist}`} aria-pressed={index === i} onClick={() => setIndex(i)} />)}</div><span>{feature.number}<span> / 03</span></span><div className="hero-arrows"><IconButton label="Previous featured artist" onClick={() => setIndex((index + 2) % 3)}><ChevronLeft size={17} /></IconButton><IconButton label="Next featured artist" onClick={() => setIndex((index + 1) % 3)}><ChevronRight size={17} /></IconButton></div></div></section>
+  if (!books.length) return <section className="hero"><div className="hero-copy"><h1>Discover your next story.</h1><p>Choose a classic and settle in for a little listening.</p><Link className="button button-primary" href="/browse">Browse books</Link></div></section>
+  const book = books[index % books.length]
+  const tracks = toPlayerTracks(book)
+  const active = tracks[0] && music.current.id === tracks[0].id && music.playing
+  const play = () => { if (tracks[0]) music.playTrack(tracks[0], tracks) }
+  return <section className="hero" aria-label="Featured book">
+    <motion.img key={book.id} className="hero-portrait" src={fileUrl(book.coverUrl)} alt={book.title} initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .7 }} fetchPriority="high" />
+    <div className="hero-overlay" /><span className="hero-watermark">KEEP LISTENING.</span>
+    <motion.div key={book.id} className="hero-copy" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5 }}>
+      <span className="hero-tag"><span />FEATURED · {book.genre.toUpperCase()}</span>
+      <h1>{book.title}</h1>
+      <div className="hero-artist"><span>{book.authorName}</span><span className="verified"><Check size={9} strokeWidth={3} /></span><span className="hero-artist-detail">Narrated by {book.narrator}</span></div>
+      <p>{book.description}</p>
+      <div className="hero-actions">
+        <button className="button button-primary" onClick={() => active ? music.togglePlay() : play()}>{active ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}{active ? 'Pause' : 'Listen now'}</button>
+        <Link className="button button-quiet" href={`/listen/${book.id}`}>Open book</Link>
+      </div>
+    </motion.div>
+    <div className="hero-pagination">
+      <div className="hero-dots">{books.slice(0, 5).map((item, i) => <button key={item.id} className={index % books.length === i ? 'active' : ''} aria-label={`Featured ${item.title}`} onClick={() => setIndex(i)} />)}</div>
+      <div className="hero-arrows">
+        <IconButton label="Previous featured book" onClick={() => setIndex((index + books.length - 1) % books.length)}><ChevronLeft size={17} /></IconButton>
+        <IconButton label="Next featured book" onClick={() => setIndex((index + 1) % books.length)}><ChevronRight size={17} /></IconButton>
+      </div>
+    </div>
+  </section>
+}
+
+function Recommended({ music }) {
+  const [books, setBooks] = useState([])
+  useEffect(() => { api('/books/recommend').then(data => setBooks(data.books || [])).catch(() => {}) }, [])
+  if (!books.length) return null
+  return <section className="made-for-you"><SectionHeading title="Because you listen" /><div className="album-grid">{books.map(book => <BookCard key={book.id} book={book} music={music} />)}</div></section>
 }
 
 function GenreTiles({ full = false }) {
-  return <div className={`genre-grid ${full ? 'full-genres' : ''}`}>{genres.slice(0, full ? 5 : 4).map(genre => { const Icon = genreIcons[genre.icon]; return <Link key={genre.name} href={`/genres?genre=${encodeURIComponent(genre.name)}`} className="genre-tile" style={{ '--genre-color': genre.color }}><span><strong>{genre.name}</strong>{full && <small>{genre.caption}</small>}</span><Icon size={full ? 44 : 34} strokeWidth={1} /><ArrowUpRight className="genre-arrow" size={15} /></Link> })}</div>
+  const router = useRouter()
+  return <div className={`genre-grid ${full ? 'full-genres' : ''}`}>{genres.slice(0, full ? genres.length : 4).map(genre => { const Icon = genreIcons[genre.icon] || BookOpen; return <Link key={genre.name} href={`/browse?tab=categories&genre=${encodeURIComponent(genre.name)}`} className={`genre-tile ${router.query.genre === genre.name ? 'is-current' : ''}`} style={{ '--genre-color': genre.color }}><span><strong>{genre.name}</strong>{full && <small>{genre.caption}</small>}</span><Icon size={full ? 44 : 34} strokeWidth={1} /><ArrowUpRight className="genre-arrow" size={15} /></Link> })}</div>
+}
+
+const phoneFilters = [
+  { id: 'all', label: 'All' },
+  { id: 'new', label: 'New Release' },
+  { id: 'trending', label: 'Trending' },
+  { id: 'top', label: 'Top' }
+]
+
+function sortPhoneBooks(books, filter) {
+  const list = [...books]
+  if (filter === 'new') return list.reverse()
+  if (filter === 'trending') return list.sort((a, b) => (b.live || 0) - (a.live || 0))
+  if (filter === 'top') return list.sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.ratingCount || 0) - (a.ratingCount || 0))
+  return list
+}
+
+function PhoneHome({ books, music }) {
+  const auth = useAuth()
+  const router = useRouter()
+  const [filter, setFilter] = useState('all')
+  const sorted = sortPhoneBooks(books, filter)
+  const featured = sorted[0]
+  const rest = sorted.slice(1)
+  const name = auth.user?.name?.split(' ')[0] || 'there'
+  const featuredTracks = featured ? toPlayerTracks(featured) : []
+  const featuredPlaying = featuredTracks[0] && music.current.id === featuredTracks[0].id && music.playing
+  const featuredLiked = featuredTracks[0] && music.liked.includes(featuredTracks[0].id)
+  return <div className="phone-home">
+    <div className="phone-home-bar">
+      {auth.user ? <Link href="/profile" className="phone-home-avatar" aria-label="Your profile">{auth.user.avatar ? <img src={avatarUrl(auth.user.avatar)} alt="" /> : <span>{name[0]}</span>}</Link> : <Link href="/login" className="phone-home-avatar" aria-label="Sign in"><span>G</span></Link>}
+      <div className="phone-home-actions">
+        <button type="button" aria-label="Search" onClick={() => router.push('/search')}><Search size={22} /></button>
+        <Link href="/collection/tracks" aria-label="Liked chapters"><Heart size={22} /></Link>
+      </div>
+    </div>
+    <h1 className="phone-hello">Hi, {name}</h1>
+    <div className="phone-chips" role="tablist" aria-label="Catalog filters">
+      {phoneFilters.map(item => <button key={item.id} type="button" role="tab" aria-selected={filter === item.id} className={filter === item.id ? 'active' : ''} onClick={() => setFilter(item.id)}>{item.label}</button>)}
+    </div>
+    <section>
+      <h2 className="phone-section-title">Curated &amp; trending</h2>
+      {featured ? <article className="phone-feature">
+        <div className="phone-feature-copy">
+          <h3>{featured.title}</h3>
+          <p>{featured.description || `${featured.genre} · narrated by ${featured.narrator}`}</p>
+          <div className="phone-feature-actions">
+            <button type="button" className="phone-play" aria-label={featuredPlaying ? 'Pause' : `Play ${featured.title}`} onClick={() => featuredPlaying ? music.togglePlay() : music.playBook(featured.id)}>{featuredPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}</button>
+            <button type="button" className={`phone-icon ${featuredLiked ? 'is-liked' : ''}`} aria-label="Like this book" disabled={!featuredTracks[0]} onClick={() => music.toggleTrackLike(featuredTracks[0])}><Heart size={18} fill={featuredLiked ? 'currentColor' : 'none'} /></button>
+            <Link className="phone-icon" href={`/listen/${featured.id}`} aria-label="Open book"><Ellipsis size={18} /></Link>
+          </div>
+        </div>
+        <Link href={`/listen/${featured.id}`} className="phone-feature-art" aria-label={`Open ${featured.title}`}><img src={fileUrl(featured.coverUrl)} alt="" /></Link>
+      </article> : <p className="muted">The catalog will appear here once the local API is running.</p>}
+    </section>
+    <section>
+      <div className="phone-section-title"><h2>Top daily listens</h2><Link href="/albums">See all</Link></div>
+      <div className="phone-list">
+        {(rest.length ? rest : sorted).slice(0, 8).map(book => {
+          const tracks = toPlayerTracks(book)
+          const playing = tracks[0] && music.current.id === tracks[0].id && music.playing
+          const chapters = book.chapters?.length || tracks.length
+          return <article key={book.id} className="phone-row">
+            <Link href={`/listen/${book.id}`}><img src={fileUrl(book.coverUrl)} alt="" /></Link>
+            <Link href={`/listen/${book.id}`}><strong>{book.title}</strong><small>By {book.authorName} · {chapters} {chapters === 1 ? 'chapter' : 'chapters'}</small></Link>
+            <button type="button" className="phone-play phone-play-line" aria-label={playing ? `Pause ${book.title}` : `Play ${book.title}`} onClick={() => playing ? music.togglePlay() : music.playBook(book.id)}>{playing ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}</button>
+          </article>
+        })}
+      </div>
+    </section>
+  </div>
 }
 
 function HomeView() {
-  return <div className="discovery-page"><div className="greeting"><div><span className="eyebrow">YOUR EVERYDAY ESCAPE</span><h2>Good music. Better days<span>.</span></h2></div><span className="greeting-note"><Headphones size={15} />Tune into yourself</span></div><Hero /><section className="artists-section"><SectionHeading title="Artists you’ll love" href="/artists" /><div className="artists-row">{artists.map(artist => <ArtistCard key={artist.id} artist={artist} />)}</div></section><div className="discovery-columns"><section className="genres-section"><SectionHeading title="Find your mood" href="/genres" /><GenreTiles /></section><section className="charts-section"><SectionHeading title="On repeat" href="/charts" /><TrackList tracks={[songs[1], songs[0], songs[2], songs[3]]} /></section></div><section className="made-for-you"><SectionHeading title="Made for your kind of day" eyebrow="A SOUNDTRACK FOR EVERY MOMENT" href="/collection/playlists" /><div className="mix-grid">{mixes.map((mix, index) => <MixCard key={mix.id} mix={mix} index={index} />)}</div></section><div className="page-footnote"><AudioLines size={16} /><span>A world of sound. A space that&apos;s yours.</span><span>Made for listening.</span></div></div>
+  const music = useMusic()
+  const [publicBooks, setPublicBooks] = useState([])
+  const [authors, setAuthors] = useState([])
+  const [live, setLive] = useState({ live: [], listeners: 0 })
+  useEffect(() => {
+    api('/books/public').then(data => setPublicBooks(data.books || [])).catch(() => {})
+    api('/books/authors').then(data => setAuthors(data.authors || [])).catch(() => {})
+    const refreshLive = () => api('/books/live').then(data => { setLive(data); setPublicBooks(previous => previous.map(book => ({ ...book, live: data.live.find(item => item.id === book.id)?.live || 0 }))) }).catch(() => {})
+    refreshLive()
+    const timer = setInterval(refreshLive, 15000)
+    return () => clearInterval(timer)
+  }, [])
+  const continueTracks = music.getTracksByIds(music.history).slice(0, 6)
+  return <div className="discovery-page">
+    <PhoneHome books={publicBooks} music={music} />
+    <div className="desktop-home">
+    <p className="demo-banner">Demo catalog &middot; fictional curator profiles &middot; real LibriVox audio excerpts</p>
+    <Hero books={publicBooks.slice(0, 5)} />
+    <section className="artists-section"><SectionHeading title="Demo curators" href="/browse?tab=people#demo-curators" /><div className="artists-row">{authors.slice(0, 6).map(artist => <ArtistCard key={artist.id} artist={{ ...artist, image: avatarUrl(artist.image), listeners: `${artist.books?.length || 0} books` }} />)}</div></section>
+    <div className="discovery-columns">
+      <section className="genres-section"><SectionHeading title="Categories" href="/browse?tab=categories" /><GenreTiles /></section>
+      <section className="charts-section"><SectionHeading title="Continue listening" href="/library?status=in_progress" /><TrackList tracks={continueTracks} showAlbum empty="Your recent chapters appear here after you press play." /></section>
+    </div>
+    {publicBooks.length > 0 && <section className="made-for-you"><SectionHeading title="Catalog" eyebrow={`${live.listeners || 0} LISTENING LIVE`} href="/albums" /><div className="album-grid">{publicBooks.map(book => <BookCard key={book.id} book={book} music={music} showLive />)}</div></section>}
+    <Recommended music={music} />
+    <div className="page-footnote"><AudioLines size={16} /><span>Audio: LibriVox / Internet Archive. Demo portraits: Random User.</span><span>Made for listening.</span></div>
+    </div>
+  </div>
 }
 
-function PageIntro({ eyebrow, title, description, children }) { return <div className="page-intro"><span className="eyebrow">{eyebrow || 'MAKE YOURSELF AT HOME'}</span><div><h1>{title}</h1>{children}</div>{description && <p>{description}</p>}</div> }
+function PageIntro({ eyebrow, title, description, children, headingLevel = 'h1' }) { const Heading = headingLevel; return <div className="page-intro"><span className="eyebrow">{eyebrow || 'MAKE YOURSELF AT HOME'}</span><div><Heading>{title}</Heading>{children}</div>{description && <p>{description}</p>}</div> }
 
-function LibraryTabs() {
-  const router = useRouter()
-  return <nav className="filter-tabs" aria-label="Library categories">{[{ name: 'Playlists', href: '/collection/playlists' }, { name: 'Favorites', href: '/collection/tracks' }, { name: 'Albums', href: '/collection/albums' }, { name: 'Artists', href: '/collection/artists' }, { name: 'Sessions', href: '/collection/podcasts' }].map(tab => <Link key={tab.href} href={tab.href} className={router.asPath === tab.href ? 'selected' : ''}>{tab.name}</Link>)}</nav>
-}
 
 function PlaylistView({ id }) {
   const music = useMusic()
   const router = useRouter()
+  const [query, setQuery] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState('')
   const isFavorites = id === 'favorites'
-  const oldIndex = /^playlist-\d+$/.test(id || '') ? Number(id.split('-')[1]) % mixes.length : -1
-  const playlist = isFavorites ? { name: 'Favorites', subtitle: 'The ones you come back to. All in one place.', trackIds: music.liked, image: '/images/bloom.jpg' } : [...mixes, ...music.playlists, ...sessions].find(item => item.id === id) || (oldIndex >= 0 ? mixes[oldIndex] : null)
-  if (!playlist) return <><PageIntro title="This playlist is off the record." description="It may have been removed, or it lives in a different browser." /><Link className="button button-primary" href="/collection/playlists">Back to your library</Link></>
-  const tracks = tracksFor(playlist.trackIds)
-  const isCustom = music.playlists.some(item => item.id === id)
-  return <><button className="back-link" onClick={() => router.push('/collection/playlists')}><ArrowLeft size={16} />Your library</button><div className={`collection-hero ${isFavorites ? 'favorites-hero' : ''}`}><div className="collection-cover">{isFavorites ? <Heart size={72} fill="currentColor" strokeWidth={1} /> : <img src={playlist.image} alt={`${playlist.name} artwork`} />}</div><div><span className="eyebrow">{isFavorites ? 'YOUR FAVORITES' : isCustom ? 'YOUR OWN MIX' : 'THE GROOVY COLLECTION'}</span><h1>{playlist.name}</h1><p>{playlist.subtitle}</p><span className="collection-meta">{isCustom || isFavorites ? 'Jamie Parker' : 'Curated by Groovy'}<span>·</span>{tracks.length} tracks<span>·</span>{Math.floor(tracks.reduce((total, track) => total + track.duration, 0) / 60)} min</span></div></div><div className="collection-controls"><button className="button button-primary" disabled={!tracks.length} onClick={() => music.playTrack(tracks[0], tracks)}><Play size={17} fill="currentColor" />Play all</button><button className="button button-quiet" disabled={!tracks.length} onClick={() => { music.setShuffle(true); music.playTrack(tracks[Math.floor(Math.random() * tracks.length)], tracks) }}><AudioLines size={17} />Shuffle</button><span>Original instrumental demos</span></div><TrackList tracks={tracks} showAlbum empty={isCustom ? 'A fresh start for your next obsession.' : 'Save the songs that feel like you.'} />{isCustom && <section className="playlist-suggestions"><SectionHeading title="A few to get you started" /><p className="muted">Add something you love to {playlist.name}.</p>{songs.filter(song => !playlist.trackIds.includes(song.id)).map(song => <div className="suggested-track" key={song.id}><img src={song.image} alt="" /><div><strong>{song.title}</strong><small>{song.artist}</small></div><button className="button button-quiet" onClick={() => music.addToPlaylist(id, song)}><Plus size={15} />Add</button></div>)}</section>}</>
+  const playlist = isFavorites ? { name: 'Liked chapters', subtitle: 'Chapters marked with a heart. Bookmarks save a specific time and note.', trackIds: music.liked, image: fileUrl('') } : music.playlists.find(item => item.id === id)
+  if (!playlist) return <><PageIntro title="Your listening list" description="This list is empty or has been removed." /><Link className="button button-primary" href="/collections?type=chapters">Back to your lists</Link></>
+  const allTracks = music.getTracksByIds(playlist.trackIds)
+  const tracks = allTracks.filter(track => matches(track, query))
+  const move = (trackId, direction) => { const ids = [...playlist.trackIds]; const index = ids.indexOf(trackId); const other = index + direction; if (index < 0 || other < 0 || other >= ids.length) return; [ids[index], ids[other]] = [ids[other], ids[index]]; music.updatePlaylist(id, { trackIds: ids }) }
+  return <><Link className="back-link" href="/collections?type=chapters"><ArrowLeft size={16} />Chapter collections</Link><div className={`collection-hero ${isFavorites ? 'favorites-hero' : ''}`}><div className="collection-cover">{isFavorites ? <Heart size={60} fill="currentColor" /> : <img src={playlist.image} alt="" />}</div><div><span className="eyebrow">{isFavorites ? 'LIKED CHAPTERS' : 'CHAPTER COLLECTION'}</span><h1>{playlist.name}</h1><p>{playlist.subtitle}</p><span className="collection-meta">{allTracks.length} chapters</span></div></div><div className="collection-controls"><button className="button button-primary" disabled={!tracks.length} onClick={() => music.playTrack(tracks[0], tracks)}><Play size={16} fill="currentColor" />Play all</button>{!isFavorites && <><button className="button button-quiet" onClick={() => { setName(playlist.name); setEditing(true) }}>Rename collection</button><button className="button button-quiet danger-action" onClick={() => { if (confirm('Delete this listening list? Your books and saved chapters will stay in your library.')) { music.deletePlaylist(id); router.push('/collections?type=chapters') } }}>Delete collection</button></>}</div><CollectionTools query={query} onQuery={setQuery} count={tracks.length} placeholder="Search chapters in this list..." /><TrackList tracks={tracks} showAlbum removable onRemove={track => isFavorites ? music.toggleLike(track.id) : music.updatePlaylist(id, { trackIds: playlist.trackIds.filter(item => item !== track.id) })} onMove={!isFavorites && !query ? move : undefined} empty="No chapters in this selection." />{!isFavorites && <p className="muted">Add chapters from their options menu. Use the arrows to put them in your preferred order.</p>}{editing && <Modal title="Rename chapter collection" onClose={() => setEditing(false)}><form className="note-form" onSubmit={event => { event.preventDefault(); music.updatePlaylist(id, { name }); setEditing(false) }}><label className="field-label">List name<input className="text-field" maxLength={80} required value={name} onChange={event => setName(event.target.value)} /></label><button type="submit" className="button button-primary" disabled={!name.trim()}>Save name</button></form></Modal>}</>
 }
 
-function ArtistsView() {
-  const router = useRouter()
-  const selected = artists.find(artist => artist.id === router.query.artist)
-  const music = useMusic()
-  if (selected) { const tracks = songs.filter(song => song.artistId === selected.id); return <><Link href="/artists" className="back-link"><ArrowLeft size={16} />All artists</Link><div className="collection-hero artist-detail"><img className="artist-detail-portrait" src={selected.image} alt={selected.name} /><div><span className="eyebrow"><Check size={13} /> FEATURED DEMO ARTIST</span><h1>{selected.name}</h1><p>{selected.genre} for your everyday escape.</p><button className="button button-primary" onClick={() => music.playTrack(tracks[0], tracks)}><Play size={16} fill="currentColor" />Listen now</button></div></div><SectionHeading title="Popular tracks" /><TrackList tracks={tracks} showAlbum /><section className="related-artists"><SectionHeading title="Keep discovering" /><div className="artists-row">{artists.filter(artist => artist.id !== selected.id).map(artist => <ArtistCard artist={artist} key={artist.id} />)}</div></section></> }
-  return <><PageIntro eyebrow="THE PEOPLE BEHIND THE FEELING" title="Your next favorite artist." description="Fresh voices. Familiar feelings. Find your connection." /><div className="artists-full-grid">{artists.map(artist => <ArtistCard key={artist.id} artist={artist} />)}</div></>
-}
+function ArtistsView() { return <PeopleDirectory /> }
 
 function SearchView() {
   const router = useRouter()
+  const music = useMusic()
   const query = router.query.searchQuery || ''
   const [value, setValue] = useState(query)
-  const [filter, setFilter] = useState(router.pathname.split('/').pop() === '[searchQuery]' ? 'all' : router.pathname.split('/').pop())
-  const normalized = String(query).toLowerCase()
-  const trackResults = songs.filter(song => `${song.title} ${song.artist} ${song.album} ${song.genre}`.toLowerCase().includes(normalized))
-  const artistResults = artists.filter(artist => `${artist.name} ${artist.genre}`.toLowerCase().includes(normalized))
-  const mixResults = mixes.filter(mix => `${mix.name} ${mix.subtitle}`.toLowerCase().includes(normalized))
-  const visibleFilter = ['tracks', 'artists', 'playlists'].includes(filter) ? filter : 'all'
-  return <><PageIntro eyebrow="FOLLOW YOUR CURIOSITY" title={query ? `Results for “${query}”` : 'What moves you?'} description={query ? 'A little closer to your next favorite.' : 'Find a song, an artist, or a whole new feeling.'} /><form className="page-search" onSubmit={event => { event.preventDefault(); if (value.trim()) router.push(`/search/${encodeURIComponent(value.trim())}`) }}><Search size={22} /><input aria-label="Find music" placeholder="Songs, artists, albums..." value={value} onChange={event => setValue(event.target.value)} /><button className="button button-primary" type="submit">Search</button></form>{!query ? <><SectionHeading title="Browse your mood" /><GenreTiles full /><section className="search-discover"><SectionHeading title="A good place to start" /><div className="mix-grid">{mixes.map(mix => <MixCard key={mix.id} mix={mix} />)}</div></section></> : <><div className="filter-tabs">{['all', 'tracks', 'artists', 'playlists'].map(item => <button key={item} className={visibleFilter === item ? 'selected' : ''} onClick={() => setFilter(item)}>{item === 'all' ? 'All results' : item[0].toUpperCase() + item.slice(1)}</button>)}</div>{(visibleFilter === 'all' || visibleFilter === 'tracks') && <section><SectionHeading title="Songs" /><TrackList tracks={trackResults} showAlbum empty="We couldn’t find that one." /></section>}{(visibleFilter === 'all' || visibleFilter === 'artists') && <section className="search-result-section"><SectionHeading title="Artists" />{artistResults.length ? <div className="artists-full-grid">{artistResults.map(artist => <ArtistCard key={artist.id} artist={artist} />)}</div> : <p className="muted">No artists match this search.</p>}</section>}{(visibleFilter === 'all' || visibleFilter === 'playlists') && <section className="search-result-section"><SectionHeading title="Playlists" />{mixResults.length ? <div className="mix-grid">{mixResults.map(mix => <MixCard key={mix.id} mix={mix} />)}</div> : <p className="muted">No playlists match this search.</p>}</section>}</>}</>
+  useEffect(() => { setValue(query) }, [query])
+  const [uploaded, setUploaded] = useState([])
+  const [authors, setAuthors] = useState([])
+  useEffect(() => {
+    if (!query) { setUploaded([]); return }
+    api(`/books/public?q=${encodeURIComponent(query)}`).then(data => setUploaded(data.books || [])).catch(() => {})
+    api('/books/authors').then(data => {
+      const normalized = String(query).toLowerCase()
+      setAuthors((data.authors || []).filter(artist => `${artist.name} ${artist.genre}`.toLowerCase().includes(normalized)))
+    }).catch(() => {})
+  }, [query])
+  return <><PageIntro eyebrow="FOLLOW YOUR CURIOSITY" title={query ? `Results for “${query}”` : 'What are you looking for?'} description="Search the live catalog — LibriVox chapters and uploaded books." /><form className="page-search" onSubmit={event => { event.preventDefault(); if (value.trim()) router.push(`/search/${encodeURIComponent(value.trim())}`) }}><Search size={22} /><input aria-label="Find books" placeholder="Books, authors, narrators..." value={value} onChange={event => setValue(event.target.value)} /><button className="button button-primary" type="submit">Search</button></form>{!query ? <><SectionHeading title="Browse categories" /><GenreTiles full /></> : <><section className="search-result-section"><SectionHeading title="Books" />{uploaded.length ? <FilteredBooks books={uploaded} /> : <p className="muted">No books match this search.</p>}</section><section className="search-result-section"><SectionHeading title="Curator profiles" />{authors.length ? <div className="artists-full-grid">{authors.map(artist => <ArtistCard key={artist.id} artist={{ ...artist, image: avatarUrl(artist.image), listeners: `${artist.books?.length || 0} books` }} />)}</div> : <p className="muted">No curator profiles match this search.</p>}</section></>}</>
 }
 
-function RadioView({ podcasts = false }) {
-  const music = useMusic()
-  return <><PageIntro eyebrow={podcasts ? 'PRESS PLAY. SETTLE IN.' : 'ALWAYS A GOOD FREQUENCY'} title={podcasts ? 'Stay a little longer.' : 'Find your frequency.'} description={podcasts ? 'Instrumental listening sessions for a little time to yourself.' : 'Continuous mixes, curated for whatever the day brings.'} /><section className={`radio-feature ${podcasts ? 'session-feature' : ''}`}><img src={podcasts ? '/images/atlas.jpg' : '/images/live.jpg'} alt="" /><div><span className="hero-tag"><span />{podcasts ? 'THE LISTENING ROOM' : 'GROOVY RADIO · DEMO STATION'}</span><h2>{podcasts ? 'Good sounds.\nBetter company.' : 'Your world.\nOn a different wavelength.'}</h2><p>{podcasts ? 'A music-only session with Atlas.' : 'Original music, flowing from one feeling to the next.'}</p><button className="button button-primary" onClick={() => { music.setRepeat('all'); music.playTrack(podcasts ? songs[1] : songs[4], songs) }}><Play size={16} fill="currentColor" />{podcasts ? 'Play session' : 'Tune in'}</button></div></section><SectionHeading title={podcasts ? 'The latest sessions' : 'Something for every mood'} /><div className="session-grid">{sessions.map((session, index) => <article className="session-card" key={session.id}><Link href={`/playlist/${session.id}`}><img src={session.image} alt="" /><span className="session-number">0{index + 1}</span></Link><div><h3>{session.name}</h3><p>{session.subtitle}</p><button className="text-link" onClick={() => { const tracks = tracksFor(session.trackIds); music.setRepeat(podcasts ? 'off' : 'all'); music.playTrack(tracks[0], tracks) }}><Play size={13} fill="currentColor" />{podcasts ? 'Play episode' : 'Start station'}</button></div></article>)}</div><p className="demo-note">{podcasts ? 'These demo sessions feature instrumental music; spoken-word episodes are not included.' : 'Demo stations play locally bundled tracks on repeat. No live broadcast connection is needed.'}</p></>
+export function BooksView({ library = false }) {
+  return <BrowseCatalog />
 }
 
-function PlaylistsView() {
+export function PlaylistsView({ embedded = false }) {
+  const [query, setQuery] = useState('')
   const music = useMusic()
   const router = useRouter()
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
-  return <><PageIntro eyebrow="A SPACE THAT’S YOURS" title="Your library." description="All your moods. All your moments. All right here."><button className="button button-primary" onClick={() => setCreating(true)}><Plus size={17} />New playlist</button></PageIntro><LibraryTabs />{music.playlists.length > 0 && <section className="custom-playlists"><SectionHeading title="Made by you" /><div className="mix-grid">{music.playlists.map(mix => <MixCard key={mix.id} mix={{ ...mix, subtitle: `${mix.trackIds.length} tracks · Your playlist` }} />)}</div></section>}<SectionHeading title="Made for you" /><div className="mix-grid">{mixes.map((mix, index) => <MixCard key={mix.id} mix={mix} index={index} />)}</div><Link className="favorites-banner" href="/collection/tracks"><span className="favorites-icon"><Heart size={28} fill="currentColor" /></span><span><h3>Your favorites, together.</h3><p>{music.liked.length} songs you can&apos;t get enough of.</p></span><ArrowUpRight size={24} /></Link>{creating && <Modal title="A playlist of your own" onClose={() => setCreating(false)}><form onSubmit={event => { event.preventDefault(); if (!name.trim()) return; const playlist = music.createPlaylist(name); setCreating(false); router.push(`/playlist/${playlist.id}`) }}><label htmlFor="new-playlist" className="field-label">Playlist name</label><input id="new-playlist" className="text-field" maxLength={60} required value={name} onChange={event => setName(event.target.value)} placeholder="Late night thoughts..." /><button type="submit" className="button button-primary full-width" disabled={!name.trim()}>Create playlist</button></form></Modal>}</>
+  return <><PageIntro eyebrow="A SPACE THAT’S YOURS" headingLevel={embedded ? 'h2' : 'h1'} title="Chapter collections" description="Arrange individual chapters in your own order. Whole-book collections are managed in the Whole books tab."><button className="button button-primary" onClick={() => setCreating(true)}><Plus size={17} />New chapter collection</button></PageIntro><CollectionTools query={query} onQuery={setQuery} count={music.playlists.filter(item => matches(item, query)).length} placeholder="Search listening lists..." />{music.playlists.length > 0 && <section className="custom-playlists"><SectionHeading title="Made by you" /><div className="mix-grid">{music.playlists.filter(item => matches(item, query)).map(mix => <MixCard key={mix.id} mix={mix} />)}</div></section>}<Link className="favorites-banner" href="/collection/tracks"><span className="favorites-icon"><Heart size={28} fill="currentColor" /></span><span><h3>Liked chapters</h3><p>{music.liked.length} chapters you want nearby.</p></span><ArrowUpRight size={24} /></Link>{creating && <Modal title="A chapter collection" onClose={() => setCreating(false)}><form onSubmit={event => { event.preventDefault(); if (!name.trim()) return; const playlist = music.createPlaylist(name); setCreating(false); router.push(`/playlist/${playlist.id}`) }}><label htmlFor="new-playlist" className="field-label">List name</label><input id="new-playlist" className="text-field" maxLength={60} required value={name} onChange={event => setName(event.target.value)} placeholder="Weekend stack..." /><button type="submit" className="button button-primary full-width" disabled={!name.trim()}>Create collection</button></form></Modal>}</>
 }
 
 function LocalView() {
+  const [query, setQuery] = useState('')
   const music = useMusic()
   const inputRef = useRef(null)
-  return <><PageIntro eyebrow="BRING YOUR OWN SOUND" title="From your collection." description="Your files, with a fresh place to play." /><div className="upload-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); music.importFiles(event.dataTransfer.files) }}><span><Upload size={28} /></span><h2>A home for your own music.</h2><p>Drop your audio files here, or browse your device.</p><button className="button button-primary" onClick={() => inputRef.current.click()}><Plus size={17} />Choose audio files</button><small>MP3, WAV, OGG, M4A · Files stay on your device and are available for this session.</small><input ref={inputRef} type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" multiple hidden onChange={event => { music.importFiles(event.target.files); event.target.value = '' }} /></div>{music.localTracks.length > 0 && <><SectionHeading title="Your local tracks" /><TrackList tracks={music.localTracks} /></>}</>
+  if (!music.hydrated) return <p className="muted">Loading your audio collection...</p>
+  return <><PageIntro eyebrow="BRING YOUR OWN AUDIO" title="Import audio" description="Your files, with a place to keep listening." /><div className="upload-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); music.importFiles(event.dataTransfer.files) }}><span><Upload size={28} /></span><h2>A home for your own chapters.</h2><p>Drop your audio files here, or browse your device.</p><button className="button button-primary" onClick={() => inputRef.current.click()}><Plus size={17} />Choose audio files</button><small>MP3, WAV, OGG, M4A · Files stay on your device and are available for this session.</small><input ref={inputRef} type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" multiple hidden onChange={event => { music.importFiles(event.target.files); event.target.value = '' }} /></div>{music.localTracks.length > 0 && <><SectionHeading title="Your local audio" /><CollectionTools query={query} onQuery={setQuery} count={music.localTracks.filter(item => matches(item, query)).length} placeholder="Search local audio..." /><TrackList tracks={music.localTracks.filter(item => matches(item, query))} removable onRemove={track => music.removeLocalTrack(track.id)} /></>}</>
+}
+
+export function GenrePage() {
+  const router = useRouter()
+  const music = useMusic()
+  const selected = genres.find(genre => genre.name === router.query.genre)
+  const [uploaded, setUploaded] = useState([])
+  useEffect(() => {
+    if (!router.isReady) return
+    let active = true
+    const params = selected ? `?genre=${encodeURIComponent(selected.name)}` : ''
+    api(`/books/public${params}`).then(data => { if (active) setUploaded(data.books || []) }).catch(() => {})
+    return () => { active = false }
+  }, [selected?.name, router.isReady])
+  const spotlight = uploaded[0]
+  return <div className="category-page"><header className="channel-stage">{spotlight?.coverUrl && <div className="browse-resume-glow" aria-hidden="true" style={{ backgroundImage: `url(${fileUrl(spotlight.coverUrl)})` }} />}<div className="page-intro"><span className="eyebrow">FIND A SHELF</span><h1>{selected ? `${selected.name}, your way.` : 'What are you in the mood to hear?'}</h1><p>{selected ? selected.caption : 'Pick a category from the catalog.'}</p></div></header><GenreTiles full />
+    <section className="genre-results"><SectionHeading title={selected ? `${selected.name} books` : 'All catalog books'} /><FilteredBooks books={uploaded} />{!uploaded.length && <p className="muted">No books in this category yet.</p>}</section>
+  </div>
+}
+
+function RecentView() {
+  const music = useMusic()
+  const [query, setQuery] = useState('')
+  const tracks = music.getTracksByIds(music.history).filter(track => matches(track, query))
+  return <><PageIntro eyebrow="PICK UP WHERE YOU LEFT OFF" title="Continue listening" description="Find a recent chapter and return to your story." /><CollectionTools query={query} onQuery={setQuery} count={tracks.length} placeholder="Search listening history..." /><TrackList tracks={tracks} showAlbum removable onRemove={track => music.removeFromHistory(track.id)} empty="No recent chapters match this selection." /></>
 }
 
 export default function MusicView() {
@@ -97,13 +277,14 @@ export default function MusicView() {
   if (path === '/collection/tracks') return <PlaylistView id="favorites" />
   if (path.startsWith('/playlist/')) return <PlaylistView id={router.query.playlist_id || path.split('/').pop()} />
   if (path.includes('artists')) return <ArtistsView />
-  if (path.includes('podcasts') || path.includes('episodes') || router.query.tab === 'podcasts') return <RadioView podcasts />
-  if (path.includes('albums')) return <><PageIntro eyebrow="MORE THAN JUST A SINGLE" title="Listen to the whole story." description="A collection of moments, made to be heard together." />{path.startsWith('/collection') && <LibraryTabs />}<div className="album-grid">{[...new Map(songs.map(song => [song.album, song])).values()].map(song => <article key={song.album} className="album-card"><button className="album-art" onClick={() => music.playTrack(song, songs.filter(item => item.album === song.album))} aria-label={`Play ${song.album}`}><img src={song.image} alt={`${song.album} album cover`} /><span><Play size={25} fill="currentColor" /></span></button><h3>{song.album}</h3><p>{song.artist}<span>·</span>2026</p></article>)}</div></>
+  if (path.includes('podcasts') || path.includes('episodes') || router.query.tab === 'podcasts') return <BooksView />
+  if (path.includes('albums')) return <BooksView library={path.startsWith('/collection')} />
   if (path === '/collection/playlists') return <PlaylistsView />
-  if (path === '/genres') { const selected = genres.find(genre => genre.name === router.query.genre); return <><PageIntro eyebrow="THERE’S A SOUND FOR THAT" title={selected ? `${selected.name}, your way.` : 'What’s your mood?'} description={selected ? selected.caption : 'Big feelings. Quiet moments. Find a genre that gets you.'} /><GenreTiles full />{selected && <section className="genre-results"><SectionHeading title={`A little ${selected.name.toLowerCase()} goes a long way`} /><TrackList tracks={songs.filter(song => song.genre === selected.name)} showAlbum /></section>}</> }
-  if (path === '/radio') return <RadioView />
-  if (path === '/local' || path === '/download') return <LocalView />
-  if (path === '/recent') return <><PageIntro eyebrow="SOUNDS LIKE YOU" title="Worth another listen." description="A little look back at where your ears have been." /><TrackList tracks={[...music.history.map(id => [...songs, ...music.localTracks].find(song => song.id === id)).filter(Boolean)]} showAlbum empty="Your listening story starts here." /></>
-  if (path === '/charts') return <><PageIntro eyebrow="YOUR NEW OBSESSIONS" title="One more time." description="The tracks we keep coming back to. You might, too." /><TrackList tracks={songs} showAlbum /></>
+  if (path === '/genres') return <GenrePage />
+  if (path === '/radio' || path === '/charts') return <DiscoveryChannels mode={path.slice(1)} />
+  if (path === '/download') return <Downloads />
+  if (path === '/local') return <LocalView />
+  if (path === '/recent') return <RecentView />
+
   return <HomeView />
 }
