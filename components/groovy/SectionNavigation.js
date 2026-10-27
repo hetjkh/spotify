@@ -42,11 +42,21 @@ export function DashboardSectionLinks({ className = 'browse-subnav-mobile' }) {
   return <nav className={className} aria-label="Dashboard sections">{dashboardSections.map(([id, label, href]) => <Link key={id} href={href} className={hash === href.slice(1) ? 'selected' : ''}>{label}</Link>)}</nav>
 }
 
-export function SectionNavigation() {
+export const creatorSections = [['uploads','My uploads','/creator'],['upload','Upload a book','/upload'],['profile','Creator profile','/profile']]
+
+export function creatorSectionId(path) {
+  if (path === '/upload') return 'upload'
+  if (path === '/profile') return 'profile'
+  return 'uploads'
+}
+
+export function CreatorSectionLinks({ className = 'browse-subnav' }) {
   const router = useRouter()
   const path = router.asPath.split('?')[0]
-  if (browsePaths.includes(path) || path.startsWith('/narrator/') || path.startsWith('/series/')) return null
-  if (libraryPaths.includes(path) || path.startsWith('/playlist/')) return null
-  if (path === '/creator' || path === '/upload' || path.startsWith('/edit/')) return <nav className="section-navigation" aria-label="Creator workspace"><Link href="/creator" className={path === '/creator' ? 'selected' : ''}>My uploads</Link><Link href="/upload" className={path === '/upload' ? 'selected' : ''}>Upload a book</Link><Link href="/profile">Creator profile</Link></nav>
+  const active = creatorSectionId(path)
+  return <nav className={className} aria-label="Creator workspace">{creatorSections.map(([id, label, href]) => <Link key={id} href={href} className={active === id ? 'selected' : ''} aria-current={active === id ? 'page' : undefined}>{label}</Link>)}</nav>
+}
+
+export function SectionNavigation() {
   return null
 }

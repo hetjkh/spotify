@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { ArrowRight, BookOpen, ChevronDown, ChevronUp, Eye, EyeOff, Globe, Headphones, ImagePlus, Lock, MapPin, Pencil, Play, Plus, Trash2, Upload } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronUp, Eye, EyeOff, FileAudio, Globe, Headphones, ImagePlus, Lock, MapPin, Pencil, Play, Plus, Trash2, Upload, UserRound } from 'lucide-react'
 import BookEditor from './BookEditor'
 import BookLibrary from './BookLibrary'
 import ListeningDashboard from './ListeningDashboard'
@@ -12,6 +12,10 @@ import { CollectionTools, FilteredBooks, matches, NoResults } from './WorkspaceU
 
 function PageIntro({ eyebrow, title, description, children }) {
   return <div className="page-intro"><span className="eyebrow">{eyebrow}</span><div><h1>{title}</h1>{children}</div>{description && <p>{description}</p>}</div>
+}
+
+function StudioFormSection({ number, title, description, children }) {
+  return <section className="studio-form-section"><div className="studio-section-heading"><span className="studio-section-number">{number}</span><div><h2>{title}</h2><p>{description}</p></div></div><div className="studio-section-fields">{children}</div></section>
 }
 
 function AuthForm({ mode }) {
@@ -245,66 +249,33 @@ export function UploadPage() {
   }
   if (!auth.ready) return <p className="muted">Loading…</p>
   if (!auth.user) return <><PageIntro eyebrow="ADD AUDIO" title="Sign in to upload." description="Your books stay on your dashboard until you make them public." /><Link className="button button-primary" href="/login">Sign in</Link></>
-  return <form className="upload-studio" onSubmit={submit}>
-    <PageIntro eyebrow="ADD AUDIO" title="Upload a book." description="Name every chapter, pick a genre, and choose who can hear it.">
-      <button className="button button-primary" disabled={busy} type="submit"><Upload size={16} />{busy ? 'Uploading…' : 'Publish to my shelf'}</button>
-    </PageIntro>
-    <div className="upload-grid">
-      <aside className="upload-cover-card">
-        <button type="button" className="cover-drop" onClick={() => coverInput.current?.click()} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); const file = event.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) setCoverFile(file) }}>
-          {coverPreview ? <img src={coverPreview} alt="Cover preview" /> : <span><ImagePlus size={28} /><strong>Add cover</strong><small>JPG or PNG · square works best</small></span>}
-        </button>
-        <input ref={coverInput} type="file" accept="image/*" hidden onChange={event => setCoverFile(event.target.files?.[0] || null)} />
-        <div className="visibility-pair">
-          <button type="button" className={visibility === 'private' ? 'selected' : ''} onClick={() => setVisibility('private')}><Lock size={16} /><span><strong>Private</strong><small>Only on your dashboard</small></span></button>
-          <button type="button" className={visibility === 'public' ? 'selected' : ''} onClick={() => setVisibility('public')}><Globe size={16} /><span><strong>Public</strong><small>Listed for anyone</small></span></button>
-        </div>
+  return <form className="upload-studio form-studio book-upload-studio" onSubmit={submit}>
+    <header className="studio-page-heading"><div><span className="studio-form-eyebrow"><Headphones size={13} />CREATOR STUDIO</span><h1>Upload a book.</h1><p>Add your cover, tell your story, and bring every chapter to life.</p></div><button className="button button-primary studio-form-primary" disabled={busy} type="submit"><Upload size={16} />{busy ? 'Uploading...' : 'Publish to my shelf'}</button></header>
+    <div className="studio-form-layout">
+      <aside className="studio-form-sidebar">
+        <section className="studio-cover-panel"><div className="studio-side-heading"><ImagePlus size={16} /><h2>Book cover</h2></div><p>Give your story a first impression.</p>
+          <button type="button" className={`studio-cover-picker ${coverPreview ? 'has-cover' : ''}`} aria-label={coverPreview ? 'Change book cover' : 'Add book cover'} onClick={() => coverInput.current?.click()} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); const file = event.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) setCoverFile(file) }}>
+            {coverPreview ? <img src={coverPreview} alt="Cover preview" /> : <span><span className="studio-picker-icon"><ImagePlus size={27} strokeWidth={1.4} /></span><strong>Add your cover</strong><small>Drop an image here<br />or click to browse</small></span>}
+          </button><input ref={coverInput} aria-label="Book cover file" type="file" accept="image/*" hidden onChange={event => setCoverFile(event.target.files?.[0] || null)} />
+          <button className="studio-change-image" type="button" onClick={() => coverInput.current?.click()}><Upload size={13} />{coverPreview ? 'Change cover' : 'Choose an image'}</button><small className="studio-image-hint">JPG, PNG or WebP. A portrait cover works beautifully.</small>
+        </section>
+        <section className="studio-visibility-panel"><div className="studio-side-heading"><Eye size={16} /><h2>Who can listen?</h2></div><div className="studio-visibility-options" role="group" aria-label="Book visibility">{[['private', Lock, 'Private', 'Only you can access this book.'], ['public', Globe, 'Public', 'Available for everyone to discover.']].map(([value, Icon, label, hint]) => <button key={value} type="button" aria-pressed={visibility === value} onClick={() => setVisibility(value)}><Icon size={17} /><span><strong>{label}</strong><small>{hint}</small></span><span className="studio-choice-dot" aria-hidden="true">{visibility === value && <Check size={11} strokeWidth={3} />}</span></button>)}</div><p className="studio-sidebar-note">You can change this later from My uploads.</p></section>
       </aside>
-      <div className="upload-fields">
-        <label className="field-label">Title<input className="text-field" value={title} onChange={event => setTitle(event.target.value)} placeholder="The Ivory Throne" required /></label>
-        <div className="upload-row">
-          <label className="field-label">Author<input className="text-field" value={authorName} onChange={event => setAuthorName(event.target.value)} /></label>
-          <label className="field-label">Narrator<input className="text-field" value={narrator} onChange={event => setNarrator(event.target.value)} /></label>
-        </div>
-        <div className="upload-row">
-          <label className="field-label">Genre<select aria-label="Genre" className="text-field" value={genre} onChange={event => setGenre(event.target.value)}>{BOOK_GENRES.map(item => <option key={item}>{item}</option>)}</select></label>
-          <label className="field-label">Language<select aria-label="Language" className="text-field" value={language} onChange={event => setLanguage(event.target.value)}>{LANGUAGES.map(item => <option key={item}>{item}</option>)}</select></label>
-        </div>
-        <div className="upload-row">
-          <label className="field-label">Series <small>(optional)</small><input className="text-field" value={series} onChange={event => setSeries(event.target.value)} placeholder="The Ivory cycle" /></label>
-          <label className="field-label">Book number<input className="text-field" type="number" min="1" value={seriesIndex} onChange={event => setSeriesIndex(event.target.value)} /></label>
-        </div>
-        <div className="upload-row">
-          <label className="field-label">Sample chapter<input className="text-field" type="number" min="1" value={sampleChapter} onChange={event => setSampleChapter(event.target.value)} /></label>
-          <label className="field-label">Year<input className="text-field" value={year} onChange={event => setYear(event.target.value)} /></label>
-        </div>
-        <label className="field-label">Description<textarea className="text-field" rows={4} value={description} onChange={event => setDescription(event.target.value)} placeholder="What should a listener know before they press play?" /></label>
+      <div className="studio-form-main">
+        <StudioFormSection number="01" title="The essentials" description="Help listeners find the story they are looking for.">
+          <label className="field-label">Title<input className="text-field studio-title-input" value={title} onChange={event => setTitle(event.target.value)} placeholder="Give your book a title" required /></label>
+          <div className="studio-field-row"><label className="field-label">Author<input className="text-field" value={authorName} onChange={event => setAuthorName(event.target.value)} placeholder="Who wrote the story?" /></label><label className="field-label">Narrator<input className="text-field" value={narrator} onChange={event => setNarrator(event.target.value)} placeholder="The voice behind the story" /></label></div>
+          <div className="studio-field-row"><label className="field-label">Genre<select aria-label="Genre" className="text-field" value={genre} onChange={event => setGenre(event.target.value)}>{BOOK_GENRES.map(item => <option key={item}>{item}</option>)}</select></label><label className="field-label">Language<select aria-label="Language" className="text-field" value={language} onChange={event => setLanguage(event.target.value)}>{LANGUAGES.map(item => <option key={item}>{item}</option>)}</select></label></div>
+          <label className="field-label">Description<textarea className="text-field" rows={4} value={description} onChange={event => setDescription(event.target.value)} placeholder="Set the scene. What should a listener know before pressing play?" /></label>
+        </StudioFormSection>
+        <StudioFormSection number="02" title="Series & edition" description="The little details that keep your catalog in order."><div className="studio-field-row"><label className="field-label"><span>Series <small>Optional</small></span><input className="text-field" value={series} onChange={event => setSeries(event.target.value)} placeholder="The name of your series" /></label><label className="field-label">Book number<input className="text-field" type="number" min="1" value={seriesIndex} onChange={event => setSeriesIndex(event.target.value)} /></label></div><div className="studio-field-row"><label className="field-label">Sample chapter<input className="text-field" type="number" min="1" value={sampleChapter} onChange={event => setSampleChapter(event.target.value)} /></label><label className="field-label">Year<input className="text-field" value={year} onChange={event => setYear(event.target.value)} /></label></div></StudioFormSection>
       </div>
     </div>
-    <section className="chapter-studio">
-      <div className="section-heading"><div><span className="eyebrow">CHAPTERS</span><h2>{chapters.length === 1 ? '1 chapter' : `${chapters.length} chapters`}</h2></div>
-        <div className="chapter-heading-actions">
-          <button type="button" className="button button-quiet" onClick={() => bulkInput.current?.click()}><Upload size={15} />Add audio files</button>
-          <button type="button" className="button button-quiet" onClick={() => addChapter()}><Plus size={15} />Add chapter</button>
-        </div>
-      </div>
-      <input ref={bulkInput} type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" multiple hidden onChange={event => { addChapter(event.target.files); event.target.value = '' }} />
-      <div className="chapter-list">{chapters.map((chapter, index) => <article className="chapter-row" key={chapter.id}>
-        <span className="chapter-index">{String(index + 1).padStart(2, '0')}</span>
-        <label className="field-label">Chapter name<input className="text-field" value={chapter.title} onChange={event => updateChapter(chapter.id, { title: event.target.value })} placeholder={`Chapter ${index + 1}`} /></label>
-        <label className="chapter-file">
-          <input type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" hidden onChange={event => { const file = event.target.files?.[0]; if (file) updateChapter(chapter.id, { file, title: chapter.title || prettyFile(file.name) }) }} />
-          <span>{chapter.file ? chapter.file.name : 'Choose audio'}</span>
-        </label>
-        <div className="chapter-move">
-          <button type="button" className="icon-button" aria-label="Move chapter up" onClick={() => moveChapter(index, -1)}><ChevronUp size={16} /></button>
-          <button type="button" className="icon-button" aria-label="Move chapter down" onClick={() => moveChapter(index, 1)}><ChevronDown size={16} /></button>
-          <button type="button" className="icon-button" aria-label="Remove chapter" onClick={() => setChapters(current => current.length === 1 ? current : current.filter(item => item.id !== chapter.id))}><Trash2 size={16} /></button>
-        </div>
-      </article>)}</div>
+    <section className="chapter-studio studio-form-section"><div className="studio-section-heading"><span className="studio-section-number">03</span><div><h2>The chapters</h2><p>Add your recordings in the order you want them heard.</p></div><span className="studio-section-count">{chapters.length} {chapters.length === 1 ? 'chapter' : 'chapters'}</span></div><div className="studio-chapter-toolbar"><span><FileAudio size={16} />MP3, WAV, OGG, M4A or FLAC</span><div className="chapter-heading-actions"><button type="button" className="button button-quiet" onClick={() => bulkInput.current?.click()}><Upload size={14} />Add audio files</button><button type="button" className="button button-quiet" onClick={() => addChapter()}><Plus size={14} />Add chapter</button></div></div><input ref={bulkInput} aria-label="Add audio files" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" multiple hidden onChange={event => { addChapter(event.target.files); event.target.value = '' }} />
+      <div className="chapter-list">{chapters.map((chapter, index) => <article className="chapter-row" key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, '0')}</span><label className="field-label">Chapter name<input className="text-field" value={chapter.title} onChange={event => updateChapter(chapter.id, { title: event.target.value })} placeholder={`Chapter ${index + 1}`} /></label><label className={`chapter-file ${chapter.file ? 'has-file' : ''}`}><input aria-label={`Audio for chapter ${index + 1}`} type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" hidden onChange={event => { const file = event.target.files?.[0]; if (file) updateChapter(chapter.id, { file, title: chapter.title || prettyFile(file.name) }) }} /><FileAudio size={16} /><span>{chapter.file ? chapter.file.name : 'Choose audio file'}</span>{chapter.file && <Check size={14} />}</label><div className="chapter-move"><button type="button" className="icon-button" aria-label="Move chapter up" disabled={!index} onClick={() => moveChapter(index, -1)}><ChevronUp size={16} /></button><button type="button" className="icon-button" aria-label="Move chapter down" disabled={index === chapters.length - 1} onClick={() => moveChapter(index, 1)}><ChevronDown size={16} /></button><button type="button" className="icon-button" aria-label="Remove chapter" disabled={chapters.length === 1} onClick={() => setChapters(current => current.length === 1 ? current : current.filter(item => item.id !== chapter.id))}><Trash2 size={16} /></button></div></article>)}</div>
     </section>
-    {error && <p className="muted">{error}</p>}
-    <button className="button button-primary" disabled={busy} type="submit"><Upload size={16} />{busy ? 'Uploading…' : 'Publish to my shelf'}</button>
+    {error && <p className="form-alert" role="alert">{error}</p>}
+    <footer className="studio-form-footer"><div><span className="studio-footer-icon">{visibility === 'private' ? <Lock size={17} /> : <Globe size={17} />}</span><span><strong>{visibility === 'private' ? 'A space just for you' : 'Ready for the listening room'}</strong><small>{chapters.filter(item => item.file).length} recordings ready &middot; {visibility === 'private' ? 'Private book' : 'Public book'}</small></span></div><button className="button button-primary studio-form-primary" disabled={busy} type="submit"><Upload size={16} />{busy ? 'Uploading...' : 'Publish to my shelf'}</button></footer>
   </form>
 }
 
@@ -339,8 +310,9 @@ export function ProfilePage() {
     setPreview(auth.user.avatar ? avatarUrl(auth.user.avatar) : '')
     setProfileReady(auth.user.id)
   }, [auth.user])
-  const setField = (key, value) => setForm(current => ({ ...current, [key]: value }))
+  const setField = (key, value) => { setSaved(false); setForm(current => ({ ...current, [key]: value })) }
   const pickPhoto = file => {
+    setSaved(false)
     setPhoto(file)
     if (preview && preview.startsWith('blob:')) URL.revokeObjectURL(preview)
     setPreview(file ? URL.createObjectURL(file) : auth.user?.avatar ? avatarUrl(auth.user.avatar) : '')
@@ -368,41 +340,17 @@ export function ProfilePage() {
   if (!auth.ready) return <p className="muted">Loading…</p>
   if (!auth.user) return null
   if (profileReady !== auth.user.id) return <p className="muted">Loading your profile...</p>
-  return <form className="upload-studio" onSubmit={submit}>
-    <PageIntro eyebrow="YOUR PROFILE" title="How you appear." description="Manage your listening profile. If you publish books, these details also appear on your creator page.">
-      <div className="chapter-heading-actions">
-        {hasPublicBooks && <Link className="button button-quiet" href={`/u/${auth.user.id}`}>View creator profile</Link>}
-        <button className="button button-primary" disabled={busy} type="submit">{busy ? 'Saving…' : 'Save profile'}</button>
-      </div>
-    </PageIntro>
-    <div className="upload-grid">
-      <aside className="upload-cover-card">
-        <button type="button" className="cover-drop profile-photo" onClick={() => photoInput.current?.click()}>
-          {preview ? <img src={preview} alt="Your profile" /> : <span><ImagePlus size={28} /><strong>Add photo</strong><small>Square JPG or PNG</small></span>}
-        </button>
-        <input ref={photoInput} type="file" accept="image/*" hidden onChange={event => pickPhoto(event.target.files?.[0] || null)} />
-        <p className="muted">{auth.user.email} · {auth.user.emailVerified ? 'verified' : 'not verified'}</p>
-        {!auth.user.emailVerified && <button type="button" className="button button-quiet" onClick={async () => { try { await api('/auth/verify/send', { method: 'POST' }); alert('Check your email for a verification link.') } catch (error) { alert(error.message) } }}>Send verify link</button>}
-      </aside>
-      <div className="upload-fields">
-        <div className="upload-row">
-          <label className="field-label">Display name<input className="text-field" value={form.name} onChange={event => setField('name', event.target.value)} required minLength={2} /></label>
-          <label className="field-label">Pronouns<input className="text-field" value={form.pronouns} onChange={event => setField('pronouns', event.target.value)} placeholder="she/her, he/him, they/them" /></label>
-        </div>
-        <div className="upload-row">
-          <label className="field-label">I am a<select className="text-field" value={form.role} onChange={event => setField('role', event.target.value)}>{ROLES.map(item => <option key={item}>{item}</option>)}</select></label>
-          <label className="field-label">Favorite genre<select className="text-field" value={form.favoriteGenre} onChange={event => setField('favoriteGenre', event.target.value)}>{BOOK_GENRES.map(item => <option key={item}>{item}</option>)}</select></label>
-        </div>
-        <div className="upload-row">
-          <label className="field-label">Location<input className="text-field" value={form.location} onChange={event => setField('location', event.target.value)} placeholder="City, country" /></label>
-          <label className="field-label">Languages<input className="text-field" value={form.languages} onChange={event => setField('languages', event.target.value)} /></label>
-        </div>
-        <label className="field-label">Website<input className="text-field" value={form.website} onChange={event => setField('website', event.target.value)} placeholder="https://" /></label>
-        <label className="field-label">Bio<textarea className="text-field" rows={4} maxLength={400} value={form.bio} onChange={event => setField('bio', event.target.value)} placeholder="What do you write, narrate, or listen to?" /></label>
-        {error && <p className="muted">{error}</p>}
-        {saved && <p className="muted">Profile saved.</p>}
+  return <form className="upload-studio profile-studio form-studio" onSubmit={submit}>
+    <header className="studio-page-heading"><div><span className="studio-form-eyebrow"><UserRound size={13} />YOUR PERSONAL SPACE</span><h1>Your profile.</h1><p>Your name, your voice, your favorite stories. Make this space yours.</p></div><div className="chapter-heading-actions">{hasPublicBooks && <Link className="button button-quiet" href={`/u/${auth.user.id}`}>View creator profile<ArrowUpRight size={14} /></Link>}<button className="button button-primary studio-form-primary" disabled={busy} type="submit"><Check size={16} />{busy ? 'Saving...' : 'Save profile'}</button></div></header>
+    <div className="studio-form-layout">
+      <aside className="studio-form-sidebar"><section className="studio-identity-card"><div className="studio-side-heading"><UserRound size={16} /><h2>Your profile photo</h2></div><button type="button" className="studio-avatar-picker" aria-label="Change profile photo" onClick={() => photoInput.current?.click()}>{preview ? <img src={preview} alt="Your profile" /> : <span className="studio-avatar-initial">{(form.name || 'G')[0].toUpperCase()}</span>}<span className="studio-avatar-edit"><Pencil size={13} /></span></button><input ref={photoInput} aria-label="Profile photo file" type="file" accept="image/*" hidden onChange={event => pickPhoto(event.target.files?.[0] || null)} /><h3>{form.name || 'Your name'}</h3><span className="studio-profile-role">{form.role}</span><button type="button" className="studio-change-image" onClick={() => photoInput.current?.click()}><ImagePlus size={14} />Change photo</button><small className="studio-image-hint">A square JPG or PNG works best.</small><div className="studio-account-email"><span>ACCOUNT EMAIL</span><strong>{auth.user.email}</strong><span className="studio-verification">{auth.user.emailVerified ? <Check size={12} /> : <Lock size={12} />}{auth.user.emailVerified ? 'Email verified' : 'Not verified yet'}</span></div>{!auth.user.emailVerified && <button type="button" className="button button-quiet" onClick={async () => { try { await api('/auth/verify/send', { method: 'POST' }); alert('Check your email for a verification link.') } catch (error) { alert(error.message) } }}>Send verify link</button>}</section><p className="studio-sidebar-note"><Eye size={14} />If you publish books, these details appear on your creator profile.</p></aside>
+      <div className="studio-form-main">
+        <StudioFormSection number="01" title="The introductions" description="What should we call you? Make your profile feel familiar."><div className="studio-field-row"><label className="field-label">Display name<input className="text-field" value={form.name} onChange={event => setField('name', event.target.value)} required minLength={2} /></label><label className="field-label">Pronouns<input className="text-field" value={form.pronouns} onChange={event => setField('pronouns', event.target.value)} placeholder="she/her, he/him, they/them" /></label></div><div className="studio-field-row"><label className="field-label">I am a<select className="text-field" value={form.role} onChange={event => setField('role', event.target.value)}>{ROLES.map(item => <option key={item}>{item}</option>)}</select></label><label className="field-label">Favorite genre<select className="text-field" value={form.favoriteGenre} onChange={event => setField('favoriteGenre', event.target.value)}>{BOOK_GENRES.map(item => <option key={item}>{item}</option>)}</select></label></div></StudioFormSection>
+        <StudioFormSection number="02" title="A little about you" description="The places, languages, and stories that make you, you."><div className="studio-field-row"><label className="field-label">Location<input className="text-field" value={form.location} onChange={event => setField('location', event.target.value)} placeholder="City, country" /></label><label className="field-label">Languages<input className="text-field" value={form.languages} onChange={event => setField('languages', event.target.value)} placeholder="The languages you speak" /></label></div><label className="field-label">Website<input className="text-field" value={form.website} onChange={event => setField('website', event.target.value)} placeholder="https://your-website.com" /></label><label className="field-label"><span>Bio <small>{form.bio.length}/400</small></span><textarea aria-label="Bio" className="text-field" rows={4} maxLength={400} value={form.bio} onChange={event => setField('bio', event.target.value)} placeholder="What do you write, narrate, or love listening to?" /></label></StudioFormSection>
       </div>
     </div>
+    {error && <p className="form-alert" role="alert">{error}</p>}
+    <footer className="studio-form-footer"><div><span className="studio-footer-icon">{saved ? <Check size={17} /> : <UserRound size={17} />}</span><span>{saved ? <strong role="status">Profile saved.</strong> : <strong>Your profile, your story.</strong>}<small>Keep your details up to date.</small></span></div><button className="button button-primary studio-form-primary" disabled={busy} type="submit"><Check size={16} />{busy ? 'Saving...' : 'Save profile'}</button></footer>
   </form>
 }
 
