@@ -32,11 +32,25 @@ Sign in as **mira@groovy.demo** with password **listening123** to explore the po
 
 ## Email and Google sign-in
 
-Email delivery uses the [Resend send-email API](https://resend.com/docs/api-reference/emails/send-email). Configure `RESEND_API_KEY` and `MAIL_FROM` with a verified sender. Set `CLIENT_ORIGIN` to the frontend origin used in emailed links. Reset links are never returned by the API or displayed in the application. Recovery always returns a generic response. Without an email provider, accounts can still sign up and sign in, but delivery cannot occur; verification requests report that email is unavailable.
+Email delivery uses the [Resend send-email API](https://resend.com/docs/api-reference/emails/send-email). Configure `RESEND_API_KEY` and `MAIL_FROM` with a verified sender. Set the first entry in `CLIENT_ORIGIN` to the frontend origin used in emailed links. Reset links are never returned by the API or displayed in the application. Recovery always returns a generic response. Without an email provider, accounts can still sign up and sign in, but delivery cannot occur; verification requests report that email is unavailable.
 
 For Google OAuth, configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `API_ORIGIN`. Register the API origin followed by `/auth/google/callback` as the authorized redirect URI. The Google button appears when credentials are configured. Live email delivery and Google OAuth still require provider credentials and have not been verified with real providers.
 
 Production requires HTTPS and a strong JWT secret; the API refuses to start with a short/missing/placeholder secret. Production cookies use Secure, HttpOnly, and SameSite=Lax. Host frontend and API on the same site, configure `CLIENT_ORIGIN` and `NEXT_PUBLIC_API_URL`, and provide persistent storage for `server/uploads`. A missing/placeholder development secret is replaced with an ephemeral random secret, so restarting the API requires signing in again. Old verification/reset links issued before this security update must be requested again.
+
+## Render and Vercel origins
+
+The backend is deployed separately from this frontend as `groovy-backend`; `server/` is excluded from the frontend Git repository. Backend fixes must be copied to that repository and deployed on Render. Changing the frontend `.env` or redeploying Vercel does not update Render's code or environment.
+
+After deploying the backend's multi-origin support (`server/clientOrigins.js`, `server/index.js`, `server/mail.js`, and `server/routes/auth.js`), set the Render backend's `CLIENT_ORIGIN` to:
+
+```env
+CLIENT_ORIGIN=https://spotify-two-lilac.vercel.app,http://localhost:3000,http://localhost:3001
+```
+
+The first URL is the destination for email links and Google sign-in redirects. Every URL in the list is an allowed browser origin. The API and Socket.IO return only the matching request origin in `Access-Control-Allow-Origin`, with `Vary: Origin`. Production allows only the listed origins; add local ports explicitly when testing against Render. A local API in development also accepts localhost and 127.0.0.1 on ports 3000 and 3001. Use origin URLs without paths, wildcards, or query strings.
+
+Keep the frontend's `NEXT_PUBLIC_API_URL=https://groovy-backend-ecfm.onrender.com`. Save the Render environment changes and deploy the updated backend. With the old backend code, a comma-separated value is emitted as an invalid CORS header; updating the environment alone cannot fix it for multiple frontends.
 
 ## Offline and statistics
 

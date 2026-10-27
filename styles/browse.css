@@ -199,16 +199,16 @@
   .dash-block-head h2 { font-size:24px; }
   .dash-jumps { grid-template-columns:1fr; }
 }
-.inner-workspace .sidebar { width:280px;padding:32px 18px 0; }
-.inner-workspace .brand { font-size:32px; }
-.inner-workspace .brand-mark { color:var(--text); }
-.inner-workspace .sidebar-link { height:48px;font-size:16px;font-weight:600;padding:0 14px;border-radius:12px;color:var(--muted); }
-.inner-workspace .sidebar-link:hover,[data-theme=light] .inner-workspace .sidebar-link:hover { color:var(--text);background:#ffffff12; }
-[data-theme=light] .inner-workspace .sidebar-link:hover { background:#0000000c; }
-.inner-workspace .sidebar-link.active,[data-theme=light] .inner-workspace .sidebar-link.active { color:var(--text);background:#ffffff16; }
-[data-theme=light] .inner-workspace .sidebar-link.active { background:#00000010; }
-.inner-workspace .nav-label,.inner-workspace .sidebar-guide .eyebrow,.inner-workspace .sidebar-guide .text-link { color:var(--muted); }
-.inner-workspace .sidebar-guide .text-link:hover { color:var(--text); }
+.app-shell .sidebar { width:280px;padding:32px 18px 0; }
+.app-shell .brand { font-size:32px; }
+.app-shell .brand-mark { color:var(--text); }
+.app-shell .sidebar-link { height:48px;font-size:16px;font-weight:600;padding:0 14px;border-radius:12px;color:var(--muted); }
+.app-shell .sidebar-link:hover,[data-theme=light] .app-shell .sidebar-link:hover { color:var(--text);background:#ffffff12; }
+[data-theme=light] .app-shell .sidebar-link:hover { background:#0000000c; }
+.app-shell .sidebar-link.active,[data-theme=light] .app-shell .sidebar-link.active { color:var(--text);background:#ffffff16; }
+[data-theme=light] .app-shell .sidebar-link.active { background:#00000010; }
+.app-shell .nav-label,.app-shell .sidebar-guide .eyebrow,.app-shell .sidebar-guide .text-link { color:var(--muted); }
+.app-shell .sidebar-guide .text-link:hover { color:var(--text); }
 .browse-subnav a { min-height:40px;font-size:15px; }
 .player-extra-label { display:none; }
 .player-sidebar { padding:28px 22px 36px; }
